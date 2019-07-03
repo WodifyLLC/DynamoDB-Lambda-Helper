@@ -8,34 +8,25 @@ DynamoDB Lambda Helper is a tool built to make it easy to leverage the power of 
 
 The setup is very easy, all you need to-do is create **three** Lambda functions and add in this Node.JS library. You will need a function for GET, PUT, and DELETE. Repeat the steps below for each function.
 
-1. Click on the &quot;Create Function&quot; button on the AWS Lambda function page.
-
-![Image 2](/images/Picture2.png)
+1. Click on the &quot;Create Function&quot; button on the AWS Lambda function page.  
+![Image 2](/images/Picture2.png)  
 2. Give it a name (example dynamoDB\_GET).
 3. Select Node.JS 10.x for the runtime.
-4. Select or create permission that has access to your database.
-
-![Image 3](/images/Picture3.png)
-5. After you create the function you will see a code editor in the browser. When you see this page you need to first add the dynamoDBHelper.js file and then configure the function to use the correct operation (ie GET or PUT). First thing you need to do is to click on File → New File
-
-![Image 4](/images/Picture4.png)
-6. Paste the content of the dynamoDBHelper.js file into the code editor.
-
-![Image 5](/images/Picture5.png)
-7. Save the file and name it &quot;dynamoDBHelper.js&quot;
-
-![Image 6](/images/Picture6.png)
-
-![Image 7](/images/Picture7.png)
-8. Open the &quot;index.js&quot; then copy and paste the code from the file the corresponds to the function you&#39;re creating (example dynmoDB\_GET.js for creating the GET Lambda function). Your lambda function should look something like this. (note the highlighted function will be different based on which operation you&#39;re creating).
-
-![Image 8](/images/Picture8.png)
+4. Select or create permission that has access to your database.  
+![Image 3](/images/Picture3.png)  
+5. After you create the function you will see a code editor in the browser. When you see this page you need to first add the dynamoDBHelper.js file and then configure the function to use the correct operation (ie GET or PUT). First thing you need to do is to click on File → New File  
+![Image 4](/images/Picture4.png)  
+6. Paste the content of the dynamoDBHelper.js file into the code editor.  
+![Image 5](/images/Picture5.png)  
+7. Save the file and name it &quot;dynamoDBHelper.js&quot;  
+![Image 6](/images/Picture6.png)  
+![Image 7](/images/Picture7.png)  
+8. Open the &quot;index.js&quot; then copy and paste the code from the file the corresponds to the function you&#39;re creating (example dynmoDB\_GET.js for creating the GET Lambda function). Your lambda function should look something like this. (note the highlighted function will be different based on which operation you&#39;re creating).  
+![Image 8](/images/Picture8.png)  
 Make sure to update the region in the config to point to the region of your AWS dynamoDB.
-9. That&#39;s it. After you create the functions for GET, PUT, and DELETE you should see your functions like this.
-
-![Image 8](/images/Picture8.png)
-
-Now that you have setup your Lambda functions you can start calling them to access the data in your Dynamo database. Before you can start using the functions let&#39;s walk through the models we created to interact.
+9. That&#39;s it. After you create the functions for GET, PUT, and DELETE you should see your functions like this.  
+![Image 8](/images/Picture8.png)  
+Now that you have setup your Lambda functions you can start calling them to access the data in your Dynamo database. Before you can start using the functions let&#39;s walk through the models we created to interact.  
 
 ## Query Model
 
