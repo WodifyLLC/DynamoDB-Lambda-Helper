@@ -59,7 +59,8 @@ A Filter has the following properties
 
 Here&#39;s an example of how to fetch all records that are between two ages. It&#39;s the SQL equivalent to writing SELECT \* FROM rescue\_dogs WHERE Age \&gt; 3 AND Age \&lt; 10.
 
-```{
+```
+{
   "Table": "rescue_dogs",
   “Limit”: 1000,
   “NextPage”: “322”,
@@ -105,7 +106,8 @@ NOTE: Make sure all your tables have a primary partition key called &quot;id&quo
 Input
 
 Example of PUTting a single record.
-```{
+```
+{
   "Table": "rescue_dogs",
   "Item": {
     "id": "324",
@@ -118,7 +120,8 @@ Example of PUTting a single record.
 
 Example of PUTting two or more records. Note: your function might timeout if you pass a lot of data into the payload. It&#39;s ideal to insert 500 records at a time, although you may be able to pass in more. Be sure to check your Lambda function&#39;s timeout setting.
 
-```{
+```
+{
   "Table": "rescue_dogs",
   "Items": [{
     "id": "324",
@@ -180,7 +183,8 @@ _GET by range_
 }
 ```
 _GET all records_
-```{
+```
+{
   "Table": "rescue_dogs",
   "Limit": 100,
   "Filters": []
@@ -193,7 +197,8 @@ Output
 
 The GET function will return the Result Model (example below).
 
-```{
+```
+{
   "NextPage": null, //will return a key to be used for getting next page
   "Count": 1, //count of records being returned in the Result 
   "Result": [
@@ -214,7 +219,8 @@ The NextPage property will only return a value if there is more available data t
 Input
 
 The input for the DELETE function is very similar to the GET input, minus a few properties.
-```{
+```
+{
   "Table": "rescue_dogs",
   “Delete”: false, // determine if you want to preview the data you want to delete
   “Verbose”: true, //determines what is returned when you call the delete.
@@ -236,7 +242,8 @@ Output
 
 When verbose is set to false
 
-```{
+```
+{
   "Count": 2,
   "Result": [],
   “Delete” : true
@@ -244,7 +251,8 @@ When verbose is set to false
 ```
 When verbose is set to true
 
-```{
+```
+{
   "Count": 2,
   "Result": [
       {id: “43”},
@@ -252,5 +260,4 @@ When verbose is set to true
    ],
   “Delete” : true
 }
-
 ```
