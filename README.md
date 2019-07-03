@@ -137,8 +137,7 @@ Example of PUTting two or more records. Note: your function might timeout if you
 
 Output
 
-The &quot;Put&quot; function will return a `"SUCCESS"` if the insert or update was successful.
-
+The &quot;PUT&quot; function will return a `"SUCCESS"` if the insert or update was successful.
 
 
 # GET
@@ -184,6 +183,15 @@ _GET all records_
 ```
 {
   "Table": "rescue_dogs",
+  "Limit": 100,
+  "Filters": []
+}
+```
+_Get all with NextPage_
+```
+{
+  "Table": "rescue_dogs",
+  "NextPage": "324",
   "Limit": 100,
   "Filters": []
 }
