@@ -1,12 +1,21 @@
-# Intro
+# Table of contents
+* [Intro](#intro)
+* [Setup](#setup)
+* [Query Model](#query-model)
+* [PUT](#put)
+* [GET](#get)
+* [DELETE](#delete)
 
-DynamoDB Lambda Helper is a tool built to make it easy to leverage the power of AWS&#39;s DynamoDB with Lambda functions. This tool will allow you PUT, GET, and DELETE data from an AWS DynamoDB without having to deal with the complexity of building out the DynamoDB models and query parameter objects.
+
+## Intro
+
+DynamoDB Lambda Helper is a tool created to simplify and speed up development when using both DynamoDB and Lambda via AWS. This tool will allow you to easily PUT, GET, and DELETE data from a DynamoDB database without having to deal with the complexity of building individual DynamoDB models and query parameter objects.
 
 ![Image 1](/images/Picture1.png)
 
 ## Setup
 
-The setup is very easy, all you need to-do is create **three** Lambda functions and add in this Node.JS library. You will need a function for GET, PUT, and DELETE. Repeat the steps below for each function.
+The setup is very easy; all you need to do is create three Lambda functions and then add in a node.js library (shown below).
 
 1. Click on the &quot;Create Function&quot; button on the AWS Lambda function page.  
 ![Image 2](/images/Picture2.png)  
@@ -21,23 +30,23 @@ The setup is very easy, all you need to-do is create **three** Lambda functions 
 7. Save the file and name it &quot;dynamoDBHelper.js&quot;  
 ![Image 6](/images/Picture6.png)  
 ![Image 7](/images/Picture7.png)  
-8. Open the &quot;index.js&quot; then copy and paste the code from the file the corresponds to the function you&#39;re creating (example dynmoDB\_GET.js for creating the GET Lambda function). Your lambda function should look something like this. (note the highlighted function will be different based on which operation you&#39;re creating).  
+8. Open the "index.js", then copy and paste the code from the file that corresponds to the function you're creating (i.e. dynamoDB_GET.js for creating the GET Lambda function). Your lambda function should look something like the following when completed.  
 ![Image 8](/images/Picture8.png)  
 Make sure to update the region in the config to point to the region of your AWS dynamoDB.
-9. That&#39;s it. After you create the functions for GET, PUT, and DELETE you should see your functions like this.  
+9. That's it! After you have finished creating all three functions, your Functions list should look like the following:  
 ![Image 8](/images/Picture8.png)  
-Now that you have setup your Lambda functions you can start calling them to access the data in your Dynamo database. Before you can start using the functions let&#39;s walk through the models we created to interact.  
+Now that you have finished setting up your Lambda functions, you can start calling them to access the data in your Dynamo database. Before you can start using the functions, let’s walk through the models we have created.
 
 ## Query Model
 
-This model has two properties
+This model has 4 properties, two of which are required.
 
 1. Table _string_
 2. Filters _list of Filter_
 3. Limit _integer (optional)_
 4. NextPage _string (optional)_
 
-&quot;Table&quot; is the name of the table you want to interact with and &quot;Filters&quot; is a list of filters. Filters are used like where statements in SQL.
+&quot;Table&quot; is the name of the table you want to interact with and &quot;Filters&quot; is a list of filters. Filters are used like WHERE statements in SQL.
 
 A Filter has the following properties
 
@@ -83,7 +92,6 @@ That query will return dogs between those ages. Here is a complete list of all t
 ```
 
 
-
 **Below is the documentation on how to use each of the functions.**
 
 # PUT
@@ -96,7 +104,7 @@ NOTE: Make sure all your tables have a primary partition key called &quot;id&quo
 
 Input
 
-Example of putting a single record.
+Example of PUTting a single record.
 ```{
   "Table": "rescue_dogs",
   "Item": {
@@ -108,7 +116,7 @@ Example of putting a single record.
 }
 ```
 
-Example of putting two or more records. Note: your function might timeout if you pass a lot of data into the payload. It&#39;s ideal to insert 500 records at a time, although you may be able to pass in more. Be sure to check your Lambda function&#39;s timeout setting.
+Example of PUTting two or more records. Note: your function might timeout if you pass a lot of data into the payload. It&#39;s ideal to insert 500 records at a time, although you may be able to pass in more. Be sure to check your Lambda function&#39;s timeout setting.
 
 ```{
   "Table": "rescue_dogs",
@@ -128,7 +136,7 @@ Example of putting two or more records. Note: your function might timeout if you
 
 Output
 
-The &quot;Put&quot; function will return a &quot;SUCCESS&quot; if the insert or update was successful.
+The &quot;Put&quot; function will return a `"SUCCESS"` if the insert or update was successful.
 
 
 
@@ -138,7 +146,47 @@ This function allows you to retrieve data from the table. Dynamo does allow you 
 
 Input
 
-The GET function accepts the Query Model (See the section above about the query model). If you&#39;re paging through a large dataset you can pass in the NextPage value into the query to get the next page of data.
+The GET function accepts the Query Model (See the section above about the query model). If you&#39;re paging through a large dataset you can pass in the NextPage value into the query to get the next page of data. Here are a few examples.
+
+_GET by id_
+```
+{
+  "Table": "rescue_dogs",
+  "Filters": [
+    {
+      "Attribute": "id",
+      "Operation": "=",
+      "CompareValue": "601"
+    }
+  ]
+}
+```
+_GET by range_
+```
+{
+  "Table": "rescue_dogs",
+  "Filters": [
+    {
+      "Attribute": "Age",
+      "Operation": ">",
+      "CompareValue": 9
+    },
+    {
+      "Attribute": "Age",
+      "Operation": "<",
+      "CompareValue": 11
+    }
+  ]
+}
+```
+_GET all records_
+```{
+  "Table": "rescue_dogs",
+  "Limit": 100,
+  "Filters": []
+}```
+
+
 
 Output
 
@@ -158,13 +206,13 @@ The GET function will return the Result Model (example below).
 }
 ```
 
-The NextPage will only return a value if there is more data that can be returned by creating another query and passing that value into it. For example, you want to query a table for 200 records but set a limit of 100 records. The first query will return 100 records and a NextPage value. You can create a second query and pass that value in as the &quot;NextPage&quot; value and it will return the next 100 records and the NextPage will be null in the response.
+The NextPage property will only return a value if there is more available data to be returned; you can then create another query and pass that value into it. For example, if you want to query a table for 200 records, but set a limit of 100 records to be returned, the first query will return 100 records and a NextPage value. You can then create a second query and pass that value in as the “NextPage” value and it will return the subsequent 100 records; that query's NextPage will be null in the response, indicating no more data is available to be retrieved.
 
 # DELETE
 
 Input
 
-The input for the DELETE function is very similar to the GET input minus a few things.
+The input for the DELETE function is very similar to the GET input, minus a few properties.
 ```{
   "Table": "rescue_dogs",
   “Delete”: false, // determine if you want to preview the data you want to delete
