@@ -184,7 +184,8 @@ _GET all records_
   "Table": "rescue_dogs",
   "Limit": 100,
   "Filters": []
-}```
+}
+```
 
 
 
