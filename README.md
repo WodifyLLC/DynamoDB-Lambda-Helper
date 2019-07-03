@@ -71,15 +71,16 @@ Here&#39;s an example of how to fetch all records that are between two ages. It&
 
 That query will return dogs between those ages. Here is a complete list of all the operations our tool supports.
 
-1. > &quot;greater than&quot;
-2. < &quot;less than&quot;
-3. = &quot;equals to&quot;
-4. <> &quot;not equal to&quot;
-5. null &quot;attribute does not contain a value&quot;
-6. contains &quot;attribute value contains part of string&quot;
-7. not contains &quot;attribute value does not contain part of string&quot;
-8. begins with &quot;attribute value begins with string&quot;
-
+```
+1. > "greater than"
+2. < "less than"
+3. = "equals to"
+4. <> "not equal to"
+5. null "attribute does not contain a value"
+6. contains "attribute value contains part of string"
+7. not contains "attribute value does not contain part of string"
+8. begins with "attribute value begins with string"
+```
 
 
 
