@@ -50,14 +50,11 @@ This model has 4 properties, two of which are required.
 
 A Filter has the following properties
 
-1. Attribute _string_
-  1. The Column or field we want to filter on.
-2. Operation _string_
-  1. How we want to filter against that Attribute.
-3. CompareValue _string or integer_
-  1. What value we want to use for the comparison.
+1. Attribute _string_ (The Column or field we want to filter on.)
+2. Operation _string_ (How we want to filter against that Attribute.)
+3. CompareValue _string or integer_ (What value we want to use for the comparison.)
 
-Here&#39;s an example of how to fetch all records that are between two ages. It&#39;s the SQL equivalent to writing SELECT \* FROM rescue\_dogs WHERE Age \&gt; 3 AND Age \&lt; 10.
+Here&#39;s an example of how to fetch all records that are between two ages. It&#39;s the SQL equivalent to writing `SELECT * FROM rescue_dogs WHERE Age > 3 AND Age < 10`.
 
 ```
 {
@@ -93,14 +90,15 @@ That query will return dogs between those ages. Here is a complete list of all t
 ```
 
 
-**Below is the documentation on how to use each of the functions.**
+**How to Use Each Function**
 
 # PUT
 
 Allows you to insert or update a record in the database.
 
-NOTE: Make sure all your tables have a primary partition key called &quot;id&quot; and it&#39;s set to a string. Currently, this tool is built to expect all tables to use the same &quot;id&quot; column as the partition key.
 
+### Important!
+*NOTE: Make sure all your tables have a primary partition key called &quot;id&quot; and it&#39;s set to a string. Currently, this tool is built to expect all tables to use the same &quot;id&quot; column as the partition key.*
 
 
 Input
@@ -236,7 +234,7 @@ The input for the DELETE function is very similar to the GET input, minus a few 
 
 - Delete = false: You can tell the function that you want to preview the data you wish to delete without deleting them. This makes the function behave like a GET function where it just returns data with the ability to page through the results. When you set the Delete=true then the function will delete the records from the database.
 - Verbose = true: This determines what is returned from the function after you delete records. If verbose is set to true the response will contain a result set of all the Ids that were deleted. If verbose is set to false then the response will just contain a count of the records that were deleted. NOTE: if you&#39;re deleting more than 1000 records the verbose will always be set to false.
-- Filters: DynamoDB doesn&#39;t allow you to delete records with advance filters (ie Where Age \&gt; 11), we can delete a batch of records but only by supplying the Id. This function allows you to pass in advance filters and we can achieve that functionality by fetching the data with a GET operation and looping through each record and deleting them 1 by 1. This function can timeout if you try to delete a lot of records.
+- DynamoDB doesn’t allow you to delete records with advanced filters (i.e. `WHERE Age > 11`). (Alternatively, we can delete a batch of records but only by supplying the Ids). We can delete a batch of records but only by supplying the Id. This function allows you to pass in advance filters and we can achieve that functionality by fetching the data with a GET operation and looping through each record and deleting them 1 by 1. This function can timeout if you try to delete a lot of records. 
 
 Output
 
