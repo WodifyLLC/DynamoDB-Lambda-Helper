@@ -1,10 +1,10 @@
-#Intro
+# Intro
 
 DynamoDB Lambda Helper is a tool built to make it easy to leverage the power of AWS&#39;s DynamoDB with Lambda functions. This tool will allow you PUT, GET, and DELETE data from an AWS DynamoDB without having to deal with the complexity of building out the DynamoDB models and query parameter objects.
 
 ![Image 1](/images/Picture1.png)
 
-##Setup
+## Setup
 
 The setup is very easy, all you need to-do is create **three** Lambda functions and add in this Node.JS library. You will need a function for GET, PUT, and DELETE. Repeat the steps below for each function.
 
@@ -14,8 +14,8 @@ The setup is very easy, all you need to-do is create **three** Lambda functions 
 3. Select Node.JS 10.x for the runtime.
 4. Select or create permission that has access to your database.
 ![Image 3](/images/Picture3.png)
-5. After you create the function you will see a code editor in the browser. When you see this page you need to first add the dynamoDBHelper.js file and then configure the function to use the correct operation (ie GET or PUT).
-First thing you need to do is to click on File → New File
+5. After you create the function you will see a code editor in the browser. When you see this page you need to first add the dynamoDBHelper.js file and then configure the function to use the correct operation (ie GET or PUT). First thing you need to do is to click on File → New File
+
 ![Image 4](/images/Picture4.png)
 6. Paste the content of the dynamoDBHelper.js file into the code editor.
 ![Image 5](/images/Picture5.png)
@@ -30,7 +30,7 @@ Make sure to update the region in the config to point to the region of your AWS 
 
 Now that you have setup your Lambda functions you can start calling them to access the data in your Dynamo database. Before you can start using the functions let&#39;s walk through the models we created to interact.
 
-##Query Model
+## Query Model
 
 This model has two properties
 
@@ -86,7 +86,7 @@ That query will return dogs between those ages. Here is a complete list of all t
 
 **Below is the documentation on how to use each of the functions.**
 
-#PUT
+# PUT
 
 Allows you to insert or update a record in the database.
 
@@ -132,7 +132,7 @@ The &quot;Put&quot; function will return a &quot;SUCCESS&quot; if the insert or 
 
 
 
-#GET
+# GET
 
 This function allows you to retrieve data from the table. Dynamo does allow you to create advanced filters but please note that when you&#39;re creating filters outside of the primary partition key Dynamo will use a table scan to retrieve that data.
 
@@ -160,7 +160,7 @@ The GET function will return the Result Model (example below).
 
 The NextPage will only return a value if there is more data that can be returned by creating another query and passing that value into it. For example, you want to query a table for 200 records but set a limit of 100 records. The first query will return 100 records and a NextPage value. You can create a second query and pass that value in as the &quot;NextPage&quot; value and it will return the next 100 records and the NextPage will be null in the response.
 
-#DELETE
+# DELETE
 
 Input
 
