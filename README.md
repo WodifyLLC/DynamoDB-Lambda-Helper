@@ -243,6 +243,7 @@ The input for the DELETE function is very similar to the GET input, minus a few 
 - Delete = false: You can tell the function that you want to preview the data you wish to delete without deleting them. This makes the function behave like a GET function where it just returns data with the ability to page through the results. When you set the Delete=true then the function will delete the records from the database.
 - Verbose = true: This determines what is returned from the function after you delete records. If verbose is set to true the response will contain a result set of all the Ids that were deleted. If verbose is set to false then the response will just contain a count of the records that were deleted. NOTE: if you&#39;re deleting more than 1000 records the verbose will always be set to false.
 - DynamoDB doesn’t allow you to delete records with advanced filters (i.e. `WHERE Age > 11`). (Alternatively, we can delete a batch of records but only by supplying the Ids). We can delete a batch of records but only by supplying the Id. This function allows you to pass in advance filters and we can achieve that functionality by fetching the data with a GET operation and looping through each record and deleting them 1 by 1. This function can timeout if you try to delete a lot of records. 
+- Lambda functions have a 3 seconds timeout window which can be configured up to 15mins. If the delete job can't complete before the timeout window it will return a status of how many records have been deleted and indicate that you can retry the function call to delete the remaining records.  
 
 Output
 
@@ -250,20 +251,37 @@ When verbose is set to false
 
 ```
 {
-  "Count": 2,
-  "Result": [],
-  “Delete” : true
+  "ItemsFound": 8,
+  "ItemsDeleted": 8,
+  "AllItemsDeleted": true,
+  "Retry": false,
+  "Result": []
 }
 ```
 When verbose is set to true
 
 ```
 {
-  "Count": 2,
+  "ItemsFound": 8,
+  "ItemsDeleted": 8,
+  "AllItemsDeleted": true,
+  "Retry": false,
   "Result": [
       {id: “43”},
       {id: “22”}
    ],
-  “Delete” : true
+}
+```
+
+When the function couldn't delete all the records before the timeout
+
+```
+{
+  "ItemsFound": 500,
+  "ItemsDeleted": 320,
+  "AllItemsDeleted": false, //indicates that not all the items were deleted
+  "Retry": true, //indicates that you can rerun this function to delete the remaining items
+  "Result": [],
+  "Warning": "" //this will also return a warning indicating that not all the records were deleted.
 }
 ```
