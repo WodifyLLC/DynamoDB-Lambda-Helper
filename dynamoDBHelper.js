@@ -9,6 +9,8 @@ var DynamoDBHelper = function(){
   var tableName = null;   
   var limit = 1000; //default limit is 1000
   var AWS = require('aws-sdk');
+  var batchList = [];
+
   
   //create the database object
   this.ddb = new AWS.DynamoDB({apiVersion: '2012-08-10'});
@@ -175,7 +177,7 @@ var DynamoDBHelper = function(){
       TableName: tableName,
       Item: item
     };
-    console.log("Params", params);
+    //console.log("Params", params);
     // Call DynamoDB to add the item to the table
     this.ddb.putItem(params, function(err, data) {
       //check if an error occured
@@ -194,7 +196,8 @@ var DynamoDBHelper = function(){
 
     //AWS has a limit of 25 per batch so let's loop through and handle each batch
     var failure = false;
-    var insertCount = items.length;
+    var insertTotal = items.length;
+    var insertCount = 0;
     var limit = 25;
     for(var i = 0; i < items.length; i+=(limit-1))
     {      
@@ -220,10 +223,11 @@ var DynamoDBHelper = function(){
       
       //create the params object with the request items 
       var params = {
-        RequestItems: requestItems
+        RequestItems: requestItems,
+        ReturnConsumedCapacity: "TOTAL"
       };
 
-      console.log("Starting Batch: " + i + "-" + end, params);
+      console.log("Starting Batch: " + i + "-" + end);
       
       //insert the batch of data
       self.ddb.batchWriteItem(params, function(err, data) {
@@ -237,7 +241,31 @@ var DynamoDBHelper = function(){
             return;
         }
 
-        console.log(data);
+        //CHECK for UnprocessedItems here
+        if(typeof data.UnprocessedItems.length == "number" && data.UnprocessedItems.length > 0)
+        {
+          //todo handle for unprocessed items at some point in the future              
+          failure = true;
+          console.log("UnprocessedItems returned. Retrying isn't supported.", data);
+          context.fail("DynamoDB returned unprocessed items. This means the requests exceeded the read/write capacity of your database configuration. Please try lower the amount of data you're trying to process or increase your Read/Write capacity.");
+          return;
+        }                                
+
+        //check to make sure the number of units is returned
+        if(typeof data.ConsumedCapacity === "undefined" || typeof data.ConsumedCapacity[0].CapacityUnits !== "number"){
+          context.fail("DynamoDB didn't return a count of records deleted. Please try again.")
+          failure = true;
+          return;
+        }
+
+        //update the count
+        insertCount += data.ConsumedCapacity[0].CapacityUnits;        
+
+        //check to see if all the items were deleted. If so let's end the function and pass back the response. 
+        if(insertCount == insertTotal){            
+          console.log("Successful Batch Delete");
+          context.succeed("SUCCESS");
+        }
         
       });
     }
@@ -253,6 +281,90 @@ var DynamoDBHelper = function(){
   this.queryTable = function(params){     
     console.log("Params:", params); 
     this.ddb.query(params, this.handleGetCallback);
+  }
+
+  this.recursiveBatchDelete = function(response, verbose){
+    //let's grab the next batch of items from the list
+    var batch = batchList.pop();
+    //make sure we have a batch to continue with
+    if(batch == null){
+      console.log("End of batchlist");
+      return;
+    }
+
+    //Build out the params for the batch delete request. 
+    //create the put requests for the items we are inserting
+    var deleteItems = [];
+    for(var x = 0; x < batch.length; x++)
+      deleteItems.push({DeleteRequest: { Key: { "id" : {S : batch[x].id }  }}})
+    
+    //create the request object with the table and items we need to insert
+    var requestItems = {};
+    requestItems[tableName] = deleteItems;
+    
+    //create the params object with the request items 
+    var params = {};
+    params["RequestItems"] = requestItems;
+    params["ReturnConsumedCapacity"] = "TOTAL";
+    //console.log("Starting Batch. " + context.getRemainingTimeInMillis());
+    //delete the batch result          
+ 
+    self.ddb.batchWriteItem(params, function(err, data) {
+      //make sure there wasn't any errors first
+      if (err) {
+          context.fail('ERROR: Dynamo failed: ' + err);             
+          return;
+      }
+      
+      //CHECK for UnprocessedItems here
+      if(typeof data.UnprocessedItems.length == "number" && data.UnprocessedItems.length > 0)
+      {
+        //todo handle for unprocessed items at some point in the future              
+        console.log("UnprocessedItems returned. Retrying isn't supported.", data);
+        context.fail("DynamoDB returned unprocessed items. This means the requests exceeded the read/write capacity of your database configuration. Please try lower the amount of data you're trying to process or increase your Read/Write capacity.");
+        return;
+      }                                
+
+      //update the delete count 
+      if(typeof data.ConsumedCapacity === "undefined" || typeof data.ConsumedCapacity[0].CapacityUnits !== "number"){
+        context.fail("DynamoDB didn't return a count of records deleted. Please try again.")
+        return;
+      }
+
+      //update the count
+      response.ItemsDeleted += data.ConsumedCapacity[0].CapacityUnits;
+      console.log("BatchDelete Callback " + response.ItemsDeleted + " of " + response.ItemsFound + " deleted.");
+
+      //update the results 
+      if(verbose)
+        for(var v=0; v < batch.lengthl; v++)
+          response.Result.push(batch[v]);
+
+      //let's make sure we have enough time left!!
+      var timeRemaining = context.getRemainingTimeInMillis();
+      if(timeRemaining < 200)
+      {
+        console.log('Ran out of time, stopping batch. ' + timeRemaining);
+        //build out the response object and throw the error
+        response.AllItemsDeleted = false;
+        response.Retry = true;           
+        response.Warning = "The Lambda function exceeded the timeout threshold before all items could be deleted. Try running this function again to delete the remaining items or increase the Lambda function timeout in AWS.";
+        context.succeed(response);
+        return;
+      }
+
+
+      //check to see if all the items were deleted. If so let's end the function and pass back the response. 
+      if(response.ItemsDeleted == response.ItemsFound){  
+        console.log("Successful Batch Delete");
+        response.AllItemsDeleted = true;       
+        context.succeed(response);
+      }else{
+        //we aren't finished deleting items so recall the batch deletion function
+        self.recursiveBatchDelete(response);
+      }
+
+    });
   }
   
   ///////////////////////////
@@ -439,11 +551,13 @@ var DynamoDBHelper = function(){
     }
   
     //the response model, we want to return this to the user
-    var response = {
-      Count: -1,
-      IsDeleted: false,
+    var response = {      
+      ItemsFound: -1,
+      ItemsDeleted: -1,
+      AllItemsDeleted: false,
+      Retry: false,
       Result: []
-  };
+    };
 
     //grab the table name from the event
     this.setTable(event.Table);
@@ -511,8 +625,9 @@ var DynamoDBHelper = function(){
           //build out the response
           if(verbose)
             response.Result = [{id: data.Attributes.id}];
-          response.Count = 1;
-          response.IsDeleted = true;
+          response.ItemsFound = 1;
+          response.ItemsDeleted = 1
+          response.AllItemsDeleted =  true;
           
           //return the status to the user
           context.succeed(response);     
@@ -523,8 +638,7 @@ var DynamoDBHelper = function(){
     //Delete the result based off table scan: Note this will have issues with larger sets of data
     getParams["ProjectionExpression"] = "id"; //only return the ids so to increase performance    
 
-    //todo this needs to support paging at some point.
-    
+    //handle for advance filter deletion by first searching for the records we need to delete
     self.ddb.scan(getParams, function(err, data) {  
         if (err) {
             context.fail('ERROR: Dynamo failed: ' + err);
@@ -534,101 +648,47 @@ var DynamoDBHelper = function(){
         //make sure we have data to delete
         if(typeof data.Items === 'undefined' || data.Items.length == 0)
         {
-          context.fail("No data was found matching the filters supplied. Please make sure the data exists before calling the delete");
-          return;
+          //context.fail("No data was found matching the filters supplied. Please make sure the data exists before calling the delete");
+          //return;
         }
 
         //get the data we are deleting
         var items = self.convertDynamoItemsToObjects(data.Items);
         
         //TODO REMOVE THIS
-        //for(var i=0; i < 400; i++)
-        //  items.push({id: "test" + i});
+        for(var i=0; i < 700; i++)
+          items.push({id: "test" + i});    
 
         //used to keep track of what was deleted to know when to call the success method.
-        var delCount = items.length;      
-        
+        response.ItemsFound = items.length;
+
+        //make sure we dont' have too much data to return
         //pass the result if verbose is set to true
-        if(verbose && response.Count < 1000)
-          response.Result = items;
+        if(response.ItemsFound  > 1000)
+          verbose = false;   
   
         //build out the response (we pass this when they all process)        
-        response.Count = 0;
-        response.IsDeleted = true;
+        response.ItemsDeleted = 0;
         
-        //delete items in a batch delete
-        //AWS has a limit of 25 per batch so let's loop through and handle each batch
-        var limit = 25;
-        var failure = false;
+        //create a batch list of items, we have to do this because aws can only process 25 requests at a time.
+        var limit = 25;        
+        batchList = [];
         for(var i = 0; i < items.length; i+=(limit-1))
-        {
-          //make sure there wasn't a failure
-          if(failure)
-            return;
-
+        {                   
           //grab the next 25 items to insert
           var end = i + (limit-1) ;
           var batch = items.slice(i, end);
           
-          //make sure we have data in this batch before processing
+          //make sure we have data
           if(batch == null || batch.length == 0)
-            return;
-      
-          console.log("Starting Batch: " + i + "-" + end + " ("+batch.length+")");
-      
-          //Build out the params for the batch delete request. 
-          //create the put requests for the items we are inserting
-          var deleteItems = [];
-          for(var x = 0; x < batch.length; x++)
-            deleteItems.push({DeleteRequest: { Key: { "id" : {S : batch[x].id }  }}})
+            continue;
           
-          //create the request object with the table and items we need to insert
-          var requestItems = {};
-          requestItems[tableName] = deleteItems;
-          
-          //create the params object with the request items 
-          var params = {};
-          params["RequestItems"] = requestItems;
-          params["ReturnConsumedCapacity"] = "TOTAL";
-      
-          //delete the batch result          
-          self.ddb.batchWriteItem(params, function(err, data) {
-            //make sure there wasn't any errors first
-            if (err) {
-                context.fail('ERROR: Dynamo failed: ' + err);
-                failure = true;                
-                return;
-            }
-            //console.log("CALLBACK", data);
-            //CHECK for UnprocessedItems here
-            if(typeof data.UnprocessedItems.length == "number" && data.UnprocessedItems.length > 0)
-            {
-              //todo handle for unprocessed items at some point in the future              
-              failure = true;
-              console.log("UnprocessedItems returned. Retrying isn't supported.", data);
-              context.fail("DynamoDB returned unprocessed items. This means the requests exceeded the read/write capacity of your database configuration. Please try lower the amount of data you're trying to process or increase your Read/Write capacity.");
-              return;
-            }                                
-
-            //update the delete count 
-            if(typeof data.ConsumedCapacity === "undefined" || typeof data.ConsumedCapacity[0].CapacityUnits !== "number"){
-              context.fail("DynamoDB didn't return a count of records deleted. Please try again.")
-              failure = true;
-              return;
-            }
-
-            //update the count
-            response.Count += data.ConsumedCapacity[0].CapacityUnits;
-            console.log("CALLBACK count " + response.Count);
-            //check to see if all the items were deleted. If so let's end the function and pass back the response. 
-            if(response.Count == delCount){  
-              response.IsDeleted = true;              
-              console.log("Successful Batch Delete");
-              context.succeed(response);
-            }
-          });
-        
+          //update the batch list with this batch
+          batchList.push(batch);
         }
+
+        //kick off the recursive batch deletion. This function will call itself until there are no more items to delete or the timeout threshhold is exceeded. 
+        self.recursiveBatchDelete(response, verbose);
     });   
   }
 }
